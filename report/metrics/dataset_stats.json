@@ -1,0 +1,18 @@
+{
+  "rows_raw": 22676,
+  "columns_raw": 12,
+  "rows_after_duplicates": 20825,
+  "rows_removed_by_business_rules": 4545,
+  "rows_cleaned": 16280,
+  "columns_cleaned": 20,
+  "target_min": 3239500.0,
+  "target_median": 13500000.0,
+  "target_mean": 39785256.320085995,
+  "target_max": 2455020000.0,
+  "train_rows": 11396,
+  "val_rows": 2442,
+  "test_rows": 2442,
+  "train_price_mean": 39780864.93971569,
+  "val_price_mean": 40339839.65888616,
+  "test_price_mean": 39251166.08968059
+}

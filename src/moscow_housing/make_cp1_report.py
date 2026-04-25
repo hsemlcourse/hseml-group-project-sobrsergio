@@ -1,4 +1,31 @@
-# CP1: Предсказание стоимости квартир в Москве
+from __future__ import annotations
+
+import json
+
+import pandas as pd
+
+from moscow_housing.config import PATHS
+
+
+def _read_json(path):
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def make_report() -> None:
+    PATHS.ensure_dirs()
+
+    stats = _read_json(PATHS.dataset_stats_path)
+    test_metrics = _read_json(PATHS.metrics / "test_metrics.json")
+
+    if PATHS.experiments_path.exists():
+        experiments = pd.read_csv(PATHS.experiments_path)
+        experiments_md = experiments.to_markdown(index=False)
+    else:
+        experiments_md = "Таблица экспериментов пока не создана."
+
+    report = f"""# CP1: Предсказание стоимости квартир в Москве
 
 ## 1. Постановка задачи
 
@@ -12,10 +39,10 @@
 
 Размер исходного датасета после загрузки:
 
-- строк до очистки: 22676
-- колонок до очистки: 12
-- строк после очистки: 16280
-- колонок после feature engineering: 20
+- строк до очистки: {stats.get("rows_raw", "заполнится после запуска")}
+- колонок до очистки: {stats.get("columns_raw", "заполнится после запуска")}
+- строк после очистки: {stats.get("rows_cleaned", "заполнится после запуска")}
+- колонок после feature engineering: {stats.get("columns_cleaned", "заполнится после запуска")}
 
 Таргет: `price`.
 
@@ -53,9 +80,9 @@
 
 Использован split 70/15/15:
 
-- train: 11396
-- validation: 2442
-- test: 2442
+- train: {stats.get("train_rows", "заполнится после запуска")}
+- validation: {stats.get("val_rows", "заполнится после запуска")}
+- test: {stats.get("test_rows", "заполнится после запуска")}
 
 Для регрессии использована стратификация по ценовым бинам, чтобы train/val/test имели похожее распределение цен.
 
@@ -85,25 +112,18 @@
 
 ## 7. Таблица экспериментов
 
-| model                                |   n_features_before_encoding |     val_mae |    val_rmse |   val_rmsle |     val_r2 |
-|:-------------------------------------|-----------------------------:|------------:|------------:|------------:|-----------:|
-| hist_gradient_boosting_with_features |                           19 | 1.04922e+07 | 4.96197e+07 |    0.211058 |  0.722646  |
-| extra_trees_with_features            |                           19 | 1.0862e+07  | 4.9784e+07  |    0.22846  |  0.720807  |
-| random_forest_with_features          |                           19 | 1.16676e+07 | 5.11325e+07 |    0.240805 |  0.705477  |
-| ridge_with_features                  |                           19 | 1.34258e+07 | 5.67252e+07 |    0.251911 |  0.637525  |
-| knn_raw_baseline                     |                           11 | 1.37061e+07 | 5.71822e+07 |    0.27444  |  0.631662  |
-| dummy_median_raw                     |                           11 | 3.17239e+07 | 9.7967e+07  |    1.09622  | -0.0811494 |
+{experiments_md}
 
 ## 8. Лучшая модель на CP1
 
-Лучшая модель по validation RMSLE: `hist_gradient_boosting_with_features`.
+Лучшая модель по validation RMSLE: `{test_metrics.get("best_model", "заполнится после запуска")}`.
 
 Метрики на test:
 
-- RMSLE: 0.22225453901806808
-- MAE: 9787013.717216846
-- RMSE: 33028252.869455576
-- R2: 0.817454584018527
+- RMSLE: {test_metrics.get("rmsle", "заполнится после запуска")}
+- MAE: {test_metrics.get("mae", "заполнится после запуска")}
+- RMSE: {test_metrics.get("rmse", "заполнится после запуска")}
+- R2: {test_metrics.get("r2", "заполнится после запуска")}
 
 ## 9. Воспроизводимость
 
@@ -122,3 +142,11 @@
 ```bash
 make cp1
 ```
+"""
+
+    PATHS.cp1_report_path.write_text(report, encoding="utf-8")
+    print(f"Report saved to {PATHS.cp1_report_path}")
+
+
+if __name__ == "__main__":
+    make_report()

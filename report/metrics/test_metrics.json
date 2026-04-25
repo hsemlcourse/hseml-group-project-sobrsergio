@@ -1,0 +1,7 @@
+{
+  "best_model": "hist_gradient_boosting_with_features",
+  "mae": 9787013.717216846,
+  "rmse": 33028252.869455576,
+  "rmsle": 0.22225453901806808,
+  "r2": 0.817454584018527
+}
