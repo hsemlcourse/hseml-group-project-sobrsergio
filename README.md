@@ -4,11 +4,13 @@
 
 Проект решает задачу регрессии: предсказание стоимости квартиры в Москве по характеристикам объявления и локации.
 
-Источник данных: [Kaggle Moscow Housing Price Dataset](https://www.kaggle.com/datasets/egorkainov/moscow-housing-price-dataset).
+Источник данных: [Kaggle Moscow Housing Price Dataset](https://www.kaggle.com/datasets/egorkainov/moscow-housing-price-dataset). Датасет выбран, потому что он напрямую относится к monetary regression, содержит реальные признаки объявлений о недвижимости и подходит по объёму для сравнения нескольких ML-моделей.
 
 ## Данные
 
-Исходный датасет содержит 22 676 строк и 12 колонок. После удаления дублей, приведения типов и очистки некорректных строк осталось 16 280 строк и 20 колонок после feature engineering.
+Исходный датасет содержит 22 676 строк и 12 колонок. После удаления дублей, приведения типов и очистки некорректных строк остаётся 16 280 строк и 26 колонок, включая target и engineered features.
+
+Датасет соответствует требованиям курса: это monetary regression, больше 10 000 строк и больше 10 колонок.
 
 Таргет: `price`.
 
@@ -44,7 +46,7 @@
   - этаж не выше количества этажей;
   - расстояние до метро неотрицательное.
 
-Добавленные признаки:
+Feature engineering:
 
 - `area_per_room`;
 - `living_area_share`;
@@ -53,7 +55,13 @@
 - `is_first_floor`;
 - `is_last_floor`;
 - `metro_distance_bucket`;
-- `is_moscow`.
+- `is_moscow`;
+- `area_log`;
+- `minutes_to_metro_log`;
+- `room_area_interaction`;
+- `kitchen_to_living_ratio`;
+- `is_studio`;
+- `floor_category`.
 
 Данные делятся на train/validation/test в пропорции 70/15/15 с фиксированным seed. Для регрессии используется стратификация по ценовым бинам, чтобы сохранить похожее распределение цен во всех частях выборки.
 
@@ -62,7 +70,8 @@
 - препроцессинг обучается только на train внутри `sklearn Pipeline`;
 - признаки, напрямую использующие target, не передаются в модель;
 - `price_per_m2` используется только для EDA;
-- дубли удаляются до split.
+- дубли удаляются до split;
+- clipping выбросов считается только по train-квантилям.
 
 ## EDA
 
@@ -73,7 +82,10 @@
 - boxplot цены по региону;
 - медианная цена по типу ремонта;
 - корреляция числовых признаков;
-- распределение цены за квадратный метр для анализа.
+- распределение цены за квадратный метр для анализа;
+- сравнение распределений target на train/validation/test;
+- feature importance;
+- PCA explained variance и PCA projection.
 
 ## Моделирование
 
@@ -85,38 +97,47 @@
 - RMSE — метрика с большим штрафом за крупные ошибки;
 - R2 — общая доля объяснённой дисперсии.
 
-В CP1 сравниваются модели:
+В CP2 сравниваются:
 
 - `DummyRegressor`;
 - `KNeighborsRegressor` без feature engineering;
-- `Ridge`;
-- `RandomForestRegressor`;
-- `ExtraTreesRegressor`;
-- `HistGradientBoostingRegressor`.
+- `Ridge` с разными `alpha`;
+- `Ridge + PCA`;
+- `RandomForestRegressor` с разными ограничениями глубины и листа;
+- `ExtraTreesRegressor` с разными ограничениями глубины и листа;
+- `HistGradientBoostingRegressor` с разными `learning_rate`, `max_iter`, `max_leaf_nodes` и `l2_regularization`.
 
-Результаты экспериментов сохраняются в `report/metrics/experiments.csv`.
+Результаты CP2 сохраняются в `report/metrics/cp2_experiments.csv`.
 
-Лучшая модель по validation RMSLE: `hist_gradient_boosting_with_features`.
+Лучшая модель по validation RMSLE: `hist_gradient_lr_007_leaf_31`.
 
-Метрики лучшей модели на test:
+Метрики лучшей CP2-модели на test:
 
 | Метрика | Значение |
 | --- | ---: |
-| RMSLE | 0.2223 |
-| MAE | 9 787 013.72 |
-| RMSE | 33 028 252.87 |
-| R2 | 0.8175 |
+| RMSLE | 0.2135 |
+| MAE | 9 430 619.48 |
+| RMSE | 32 346 528.12 |
+| R2 | 0.8249 |
+
+Дополнительные артефакты CP2:
+
+- `report/metrics/cp2_test_metrics.json`;
+- `report/metrics/cp2_feature_importance.csv`;
+- `report/metrics/cp2_pca_explained_variance.json`;
+- `models/final_model_cp2.joblib`, генерируется локально и не коммитится.
 
 ## Воспроизводимость
 
 В проекте есть:
 
-- `Makefile` для запуска всего CP1;
+- `Makefile` для запуска CP1/CP2;
 - `requirements.txt` с зафиксированными версиями зависимостей;
-- `pyproject.toml` с настройками `ruff`;
+- `pyproject.toml` с настройками `ruff` и `pytest`;
 - `Dockerfile` и `docker-compose.yml`;
 - fixed seed в split и моделях;
-- тесты для feature engineering.
+- тесты для feature engineering, split и метрик;
+- GitHub Actions для `ruff`.
 
 ## Запуск
 
@@ -127,7 +148,7 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
-make cp1
+make cp2
 ```
 
 Если исходного CSV нет, его можно скачать через Kaggle CLI:
@@ -143,7 +164,8 @@ kaggle datasets download -d egorkainov/moscow-housing-price-dataset -p data/raw 
 make prepare
 make eda
 make train
-make report
+make train-cp2
+make report-cp2
 make lint
 make test
 ```
@@ -165,20 +187,22 @@ docker compose up --build
 ├── notebooks/               # дополнительные материалы
 ├── presentation/            # материалы для защиты
 ├── report/
-│   ├── images/              # EDA-графики
-│   ├── metrics/             # метрики и таблица экспериментов
-│   └── report.md            # отчёт по CP1
+│   ├── images/              # EDA-графики и CP2-графики
+│   ├── metrics/             # метрики и таблицы экспериментов
+│   └── report.md            # отчёт по текущему чекпоинту
 ├── src/moscow_housing/
 │   ├── config.py
 │   ├── constants.py
 │   ├── data.py
 │   ├── features.py
+│   ├── make_cp1_report.py
+│   ├── make_cp2_report.py
 │   ├── make_eda.py
 │   ├── metrics.py
 │   ├── modeling.py
 │   ├── prepare_data.py
 │   ├── train.py
-│   └── make_cp1_report.py
+│   └── train_cp2.py
 ├── tests/
 ├── Makefile
 ├── requirements.txt

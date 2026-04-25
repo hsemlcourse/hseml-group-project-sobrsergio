@@ -62,6 +62,9 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int | float]]:
     }
 
     result = result[REQUIRED_COLUMNS].copy()
+    stats["missing_values_raw_total"] = int(result.isna().sum().sum())
+    for column, missing_count in result.isna().sum().items():
+        stats[f"missing_raw_{column}"] = int(missing_count)
 
     numeric_columns = [
         "price",
@@ -75,6 +78,8 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int | float]]:
     ]
     for column in numeric_columns:
         result[column] = pd.to_numeric(result[column], errors="coerce")
+    for column, missing_count in result[numeric_columns].isna().sum().items():
+        stats[f"missing_after_type_cast_{column}"] = int(missing_count)
 
     categorical_columns = ["apartment_type", "metro_station", "region", "renovation"]
     for column in categorical_columns:
@@ -84,7 +89,10 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int | float]]:
             .str.strip()
             .replace({"": pd.NA, "nan": pd.NA, "None": pd.NA})
         )
+    for column, missing_count in result[categorical_columns].isna().sum().items():
+        stats[f"missing_after_string_cleanup_{column}"] = int(missing_count)
 
+    stats["duplicate_rows"] = int(result.duplicated().sum())
     result = result.drop_duplicates()
     stats["rows_after_duplicates"] = int(len(result))
 
@@ -114,6 +122,10 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int | float]]:
     stats["target_median"] = float(result[TARGET_COLUMN].median())
     stats["target_mean"] = float(result[TARGET_COLUMN].mean())
     stats["target_max"] = float(result[TARGET_COLUMN].max())
+    stats["target_q01"] = float(result[TARGET_COLUMN].quantile(0.01))
+    stats["target_q99"] = float(result[TARGET_COLUMN].quantile(0.99))
+    stats["area_q01"] = float(result["area"].quantile(0.01))
+    stats["area_q99"] = float(result["area"].quantile(0.99))
 
     return result, stats
 

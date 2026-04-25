@@ -1,6 +1,6 @@
 services:
-  cp1:
+  cp2:
     build: .
     volumes:
       - .:/app
-    command: make cp1
+    command: make cp2

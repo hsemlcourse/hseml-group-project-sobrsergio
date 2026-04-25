@@ -5,6 +5,7 @@ from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.decomposition import PCA
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import (
     ExtraTreesRegressor,
@@ -106,6 +107,29 @@ def build_pipeline(
     )
 
 
+def build_pca_pipeline(
+    estimator,
+    feature_columns: Iterable[str],
+    n_components: int | float = 0.95,
+    log_target: bool = True,
+) -> Pipeline:
+    model = estimator
+    if log_target:
+        model = TransformedTargetRegressor(
+            regressor=estimator,
+            func=np.log1p,
+            inverse_func=safe_expm1_target,
+        )
+
+    return Pipeline(
+        steps=[
+            ("preprocessor", build_preprocessor(feature_columns)),
+            ("pca", PCA(n_components=n_components, random_state=RANDOM_STATE)),
+            ("model", model),
+        ]
+    )
+
+
 def get_experiments(df: pd.DataFrame) -> dict[str, tuple[Pipeline, list[str]]]:
     raw_features = get_feature_columns(df, use_feature_engineering=False)
     full_features = get_feature_columns(df, use_feature_engineering=True)
@@ -164,5 +188,148 @@ def get_experiments(df: pd.DataFrame) -> dict[str, tuple[Pipeline, list[str]]]:
                 log_target=True,
             ),
             full_features,
+        ),
+    }
+
+
+def get_cp2_experiments(df: pd.DataFrame) -> dict[str, tuple[Pipeline, list[str], str]]:
+    raw_features = get_feature_columns(df, use_feature_engineering=False)
+    full_features = get_feature_columns(df, use_feature_engineering=True)
+
+    return {
+        "dummy_median_raw": (
+            build_pipeline(DummyRegressor(strategy="median"), raw_features, log_target=False),
+            raw_features,
+            "Baseline: constant median prediction on raw features.",
+        ),
+        "knn_raw_k10": (
+            build_pipeline(KNeighborsRegressor(n_neighbors=10), raw_features, log_target=True),
+            raw_features,
+            "Simple out-of-the-box KNN baseline without feature engineering.",
+        ),
+        "ridge_alpha_1": (
+            build_pipeline(Ridge(alpha=1.0, random_state=RANDOM_STATE), full_features, log_target=True),
+            full_features,
+            "Regularized linear model with moderate penalty.",
+        ),
+        "ridge_alpha_30": (
+            build_pipeline(Ridge(alpha=30.0, random_state=RANDOM_STATE), full_features, log_target=True),
+            full_features,
+            "Regularized linear model with stronger penalty.",
+        ),
+        "ridge_pca_95": (
+            build_pca_pipeline(
+                Ridge(alpha=10.0, random_state=RANDOM_STATE),
+                full_features,
+                n_components=0.95,
+                log_target=True,
+            ),
+            full_features,
+            "Dimensionality reduction: PCA keeps 95% of encoded-feature variance.",
+        ),
+        "random_forest_depth_14_leaf_3": (
+            build_pipeline(
+                RandomForestRegressor(
+                    n_estimators=220,
+                    max_depth=14,
+                    min_samples_leaf=3,
+                    n_jobs=-1,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "RandomForest tuning: shallower trees and stronger leaf regularization.",
+        ),
+        "random_forest_depth_20_leaf_2": (
+            build_pipeline(
+                RandomForestRegressor(
+                    n_estimators=260,
+                    max_depth=20,
+                    min_samples_leaf=2,
+                    n_jobs=-1,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "RandomForest tuning: deeper trees with moderate regularization.",
+        ),
+        "extra_trees_depth_18_leaf_2": (
+            build_pipeline(
+                ExtraTreesRegressor(
+                    n_estimators=260,
+                    max_depth=18,
+                    min_samples_leaf=2,
+                    n_jobs=-1,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "ExtraTrees tuning: randomized tree ensemble.",
+        ),
+        "extra_trees_depth_none_leaf_3": (
+            build_pipeline(
+                ExtraTreesRegressor(
+                    n_estimators=260,
+                    max_depth=None,
+                    min_samples_leaf=3,
+                    n_jobs=-1,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "ExtraTrees tuning: unrestricted depth with stronger leaf regularization.",
+        ),
+        "hist_gradient_lr_005_leaf_31": (
+            build_pipeline(
+                HistGradientBoostingRegressor(
+                    learning_rate=0.05,
+                    max_iter=420,
+                    max_leaf_nodes=31,
+                    l2_regularization=0.05,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "Gradient boosting tuning: lower learning rate and more iterations.",
+        ),
+        "hist_gradient_lr_007_leaf_31": (
+            build_pipeline(
+                HistGradientBoostingRegressor(
+                    learning_rate=0.07,
+                    max_iter=350,
+                    max_leaf_nodes=31,
+                    l2_regularization=0.05,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "Gradient boosting tuning: CP1-like learning rate with more iterations.",
+        ),
+        "hist_gradient_lr_004_leaf_63": (
+            build_pipeline(
+                HistGradientBoostingRegressor(
+                    learning_rate=0.04,
+                    max_iter=460,
+                    max_leaf_nodes=63,
+                    l2_regularization=0.10,
+                    random_state=RANDOM_STATE,
+                ),
+                full_features,
+                log_target=True,
+            ),
+            full_features,
+            "Gradient boosting tuning: larger trees with stronger L2 regularization.",
         ),
     }

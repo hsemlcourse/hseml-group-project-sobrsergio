@@ -91,6 +91,25 @@ def plot_price_per_m2_distribution(df: pd.DataFrame) -> None:
     _save_current_figure("06_price_per_m2_distribution.png")
 
 
+def plot_split_target_distribution() -> None:
+    if not (PATHS.train_path.exists() and PATHS.val_path.exists() and PATHS.test_path.exists()):
+        return
+
+    train_df = pd.read_csv(PATHS.train_path)
+    val_df = pd.read_csv(PATHS.val_path)
+    test_df = pd.read_csv(PATHS.test_path)
+
+    plt.figure(figsize=(8, 5))
+    plt.hist(np.log1p(train_df[TARGET_COLUMN]), bins=45, alpha=0.45, label="train")
+    plt.hist(np.log1p(val_df[TARGET_COLUMN]), bins=45, alpha=0.45, label="validation")
+    plt.hist(np.log1p(test_df[TARGET_COLUMN]), bins=45, alpha=0.45, label="test")
+    plt.title("Train/validation/test target distribution")
+    plt.xlabel("log1p(price)")
+    plt.ylabel("count")
+    plt.legend()
+    _save_current_figure("10_cp2_split_target_distribution.png")
+
+
 def make_eda() -> None:
     PATHS.ensure_dirs()
 
@@ -107,6 +126,7 @@ def make_eda() -> None:
     plot_renovation_median_price(df)
     plot_numeric_correlation(df)
     plot_price_per_m2_distribution(df)
+    plot_split_target_distribution()
 
 
 if __name__ == "__main__":

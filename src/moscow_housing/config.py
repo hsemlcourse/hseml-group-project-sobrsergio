@@ -43,8 +43,28 @@ class ProjectPaths:
         return self.models / "best_model.joblib"
 
     @property
+    def final_model_path(self) -> Path:
+        return self.models / "final_model_cp2.joblib"
+
+    @property
     def cp1_report_path(self) -> Path:
         return self.report / "report.md"
+
+    @property
+    def cp2_experiments_path(self) -> Path:
+        return self.metrics / "cp2_experiments.csv"
+
+    @property
+    def cp2_test_metrics_path(self) -> Path:
+        return self.metrics / "cp2_test_metrics.json"
+
+    @property
+    def feature_importance_path(self) -> Path:
+        return self.metrics / "cp2_feature_importance.csv"
+
+    @property
+    def pca_variance_path(self) -> Path:
+        return self.metrics / "cp2_pca_explained_variance.json"
 
     def ensure_dirs(self) -> None:
         for path in [

@@ -42,6 +42,12 @@ ENGINEERED_FEATURE_COLUMNS = [
     "is_last_floor",
     "metro_distance_bucket",
     "is_moscow",
+    "area_log",
+    "minutes_to_metro_log",
+    "room_area_interaction",
+    "kitchen_to_living_ratio",
+    "is_studio",
+    "floor_category",
 ]
 
 CATEGORICAL_FEATURES = [
@@ -50,6 +56,7 @@ CATEGORICAL_FEATURES = [
     "region",
     "renovation",
     "metro_distance_bucket",
+    "floor_category",
 ]
 
 NUMERIC_FEATURES = [
@@ -67,6 +74,11 @@ NUMERIC_FEATURES = [
     "is_first_floor",
     "is_last_floor",
     "is_moscow",
+    "area_log",
+    "minutes_to_metro_log",
+    "room_area_interaction",
+    "kitchen_to_living_ratio",
+    "is_studio",
 ]
 
 RANDOM_STATE = 42

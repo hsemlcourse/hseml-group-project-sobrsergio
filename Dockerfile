@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir
 
 COPY . .
 
-CMD ["make", "cp1"]
+CMD ["make", "cp2"]

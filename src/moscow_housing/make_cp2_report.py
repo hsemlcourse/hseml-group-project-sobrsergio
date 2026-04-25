@@ -1,4 +1,52 @@
-# CP2: Предсказание стоимости квартир в Москве
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pandas as pd
+
+from moscow_housing.config import PATHS
+
+
+def _read_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _read_table(path: Path, columns: list[str] | None = None) -> str:
+    if not path.exists():
+        return "Таблица пока не создана."
+    table = pd.read_csv(path)
+    if columns is not None:
+        table = table[columns]
+    return table.to_markdown(index=False)
+
+
+def make_report() -> None:
+    PATHS.ensure_dirs()
+
+    stats = _read_json(PATHS.dataset_stats_path)
+    preliminary_test_metrics = _read_json(PATHS.metrics / "test_metrics.json")
+    cp2_test_metrics = _read_json(PATHS.cp2_test_metrics_path)
+    pca_stats = _read_json(PATHS.pca_variance_path)
+
+    cp2_columns = [
+        "model",
+        "feature_set",
+        "n_features_before_encoding",
+        "val_rmsle",
+        "val_mae",
+        "val_r2",
+        "fit_time_sec",
+        "comment",
+    ]
+    importance_columns = ["feature", "importance_mean", "importance_std"]
+
+    cp2_experiments_md = _read_table(PATHS.cp2_experiments_path, cp2_columns)
+    importance_md = _read_table(PATHS.feature_importance_path, importance_columns)
+
+    report = f"""# CP2: Предсказание стоимости квартир в Москве
 
 ## 1. Постановка задачи
 
@@ -10,13 +58,13 @@
 
 Источник: Kaggle Moscow Housing Price Dataset. Датасет выбран, потому что он напрямую относится к monetary regression, содержит реальные признаки объявлений о недвижимости и подходит по объёму для сравнения нескольких ML-моделей.
 
-- строк до очистки: 22676
-- колонок до очистки: 12
-- строк после удаления дублей: 20825
-- строк после очистки: 16280
-- колонок после feature engineering: 26
-- дублей удалено: 1851
-- строк удалено бизнес-правилами: 4545
+- строк до очистки: {stats.get("rows_raw", "нет данных")}
+- колонок до очистки: {stats.get("columns_raw", "нет данных")}
+- строк после удаления дублей: {stats.get("rows_after_duplicates", "нет данных")}
+- строк после очистки: {stats.get("rows_cleaned", "нет данных")}
+- колонок после feature engineering: {stats.get("columns_cleaned", "нет данных")}
+- дублей удалено: {stats.get("duplicate_rows", "нет данных")}
+- строк удалено бизнес-правилами: {stats.get("rows_removed_by_business_rules", "нет данных")}
 
 Датасет удовлетворяет требованиям курса: больше 10 000 строк, больше 10 колонок, задача monetary regression.
 
@@ -67,7 +115,7 @@ Baseline-модели:
 - `DummyRegressor` — sanity check, предсказание медианы;
 - `KNeighborsRegressor` — простая модель из коробки без feature engineering.
 
-Test RMSLE предварительного пайплайна до CP2 tuning: 0.22441820263813142.
+Test RMSLE предварительного пайплайна до CP2 tuning: {preliminary_test_metrics.get("rmsle", "нет данных")}.
 
 ## 6. CP2-эксперименты
 
@@ -82,70 +130,31 @@ Test RMSLE предварительного пайплайна до CP2 tuning: 
 
 Таблица экспериментов:
 
-| model                         | feature_set   |   n_features_before_encoding |   val_rmsle |     val_mae |     val_r2 |   fit_time_sec | comment                                                                  |
-|:------------------------------|:--------------|-----------------------------:|------------:|------------:|-----------:|---------------:|:-------------------------------------------------------------------------|
-| hist_gradient_lr_007_leaf_31  | engineered    |                           25 |    0.210527 | 1.03423e+07 |  0.736412  |          4.114 | Gradient boosting tuning: CP1-like learning rate with more iterations.   |
-| hist_gradient_lr_004_leaf_63  | engineered    |                           25 |    0.211063 | 1.04702e+07 |  0.725613  |         10.218 | Gradient boosting tuning: larger trees with stronger L2 regularization.  |
-| hist_gradient_lr_005_leaf_31  | engineered    |                           25 |    0.213051 | 1.0565e+07  |  0.728068  |          3.981 | Gradient boosting tuning: lower learning rate and more iterations.       |
-| ridge_alpha_1                 | engineered    |                           25 |    0.226706 | 1.19345e+07 |  0.631919  |          0.095 | Regularized linear model with moderate penalty.                          |
-| extra_trees_depth_18_leaf_2   | engineered    |                           25 |    0.233923 | 1.0958e+07  |  0.725959  |          2.898 | ExtraTrees tuning: randomized tree ensemble.                             |
-| extra_trees_depth_none_leaf_3 | engineered    |                           25 |    0.236668 | 1.13543e+07 |  0.714104  |          2.8   | ExtraTrees tuning: unrestricted depth with stronger leaf regularization. |
-| random_forest_depth_20_leaf_2 | engineered    |                           25 |    0.241755 | 1.17173e+07 |  0.702513  |          4.247 | RandomForest tuning: deeper trees with moderate regularization.          |
-| random_forest_depth_14_leaf_3 | engineered    |                           25 |    0.24685  | 1.19923e+07 |  0.694201  |          2.828 | RandomForest tuning: shallower trees and stronger leaf regularization.   |
-| ridge_alpha_30                | engineered    |                           25 |    0.250961 | 1.30156e+07 |  0.621958  |          0.085 | Regularized linear model with stronger penalty.                          |
-| knn_raw_k10                   | raw           |                           11 |    0.27444  | 1.37061e+07 |  0.631662  |          0.03  | Simple out-of-the-box KNN baseline without feature engineering.          |
-| ridge_pca_95                  | engineered    |                           25 |    0.313512 | 1.56852e+07 |  0.610487  |          0.058 | Dimensionality reduction: PCA keeps 95% of encoded-feature variance.     |
-| dummy_median_raw              | raw           |                           11 |    1.09622  | 3.17239e+07 | -0.0811494 |          0.033 | Baseline: constant median prediction on raw features.                    |
+{cp2_experiments_md}
 
 ## 7. Уменьшение размерности
 
 Проведён эксперимент `ridge_pca_95`: после encoding признаков PCA сохраняет 95% дисперсии и затем обучается Ridge.
 
-- число PCA-компонент: 20
-- сохранённая доля дисперсии: 0.9518396543729467
+- число PCA-компонент: {pca_stats.get("n_components", "нет данных")}
+- сохранённая доля дисперсии: {pca_stats.get("explained_variance_sum", "нет данных")}
 
 Вывод: PCA добавлен как контрольный эксперимент. Для табличных данных с категориальными one-hot признаками он не обязан улучшать качество, но помогает проверить, можно ли сжать пространство признаков без сильной потери качества.
 
 ## 8. Финальная модель и интерпретируемость
 
-Финальная модель выбрана по validation RMSLE: `hist_gradient_lr_007_leaf_31`.
+Финальная модель выбрана по validation RMSLE: `{cp2_test_metrics.get("best_model", "нет данных")}`.
 
 Метрики финальной модели на test:
 
-- RMSLE: 0.21354964294317733
-- MAE: 9430619.479579482
-- RMSE: 32346528.115745854
-- R2: 0.8249125266833573
+- RMSLE: {cp2_test_metrics.get("rmsle", "нет данных")}
+- MAE: {cp2_test_metrics.get("mae", "нет данных")}
+- RMSE: {cp2_test_metrics.get("rmse", "нет данных")}
+- R2: {cp2_test_metrics.get("r2", "нет данных")}
 
 Permutation importance на validation sample:
 
-| feature                 |   importance_mean |   importance_std |
-|:------------------------|------------------:|-----------------:|
-| area                    |       2.11001e+07 |       697145     |
-| metro_station           |       3.91341e+06 |       200505     |
-| number_of_floors        |       2.17194e+06 |       580750     |
-| apartment_type          |       2.13808e+06 |       206713     |
-| renovation              |       1.98812e+06 |       243220     |
-| area_per_room           |       1.68019e+06 |       131402     |
-| is_moscow               |       1.63267e+06 |       121879     |
-| kitchen_area            |  742414           |       226134     |
-| minutes_to_metro        |  673225           |       105265     |
-| living_area             |  650793           |        78280.7   |
-| room_area_interaction   |  553573           |        58813.6   |
-| floor                   |  451712           |       105193     |
-| floor_ratio             |  420252           |        47202.4   |
-| kitchen_to_living_ratio |  408550           |       144221     |
-| living_area_share       |  322389           |       160204     |
-| region                  |   99137.6         |        45890.9   |
-| number_of_rooms         |   75103.8         |        44915.5   |
-| metro_distance_bucket   |   28637.5         |        43330.5   |
-| is_last_floor           |    5419.25        |         1295.37  |
-| is_studio               |       0           |            0     |
-| minutes_to_metro_log    |       0           |            0     |
-| area_log                |       0           |            0     |
-| is_first_floor          |    -287.308       |          289.724 |
-| floor_category          |  -15175.9         |        35056.8   |
-| kitchen_area_share      |  -18999.2         |        33121.5   |
+{importance_md}
 
 ## 9. Воспроизводимость
 
@@ -167,3 +176,11 @@ make cp2
 ## 10. Что остаётся на CP3
 
 На CP3 нужно добавить FastAPI-деплой, финальный отчёт/демонстрацию деплоя и материалы для защиты.
+"""
+
+    PATHS.cp1_report_path.write_text(report, encoding="utf-8")
+    print(f"CP2 report saved to {PATHS.cp1_report_path}")
+
+
+if __name__ == "__main__":
+    make_report()
