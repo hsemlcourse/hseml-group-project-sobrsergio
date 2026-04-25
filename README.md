@@ -127,6 +127,49 @@ Feature engineering:
 - `report/metrics/cp2_pca_explained_variance.json`;
 - `models/final_model_cp2.joblib`, генерируется локально и не коммитится.
 
+## Деплой
+
+Для CP3 добавлен FastAPI-сервис.
+
+Эндпоинты:
+
+- `GET /health` — проверка статуса сервиса;
+- `GET /model-info` — информация о модели, признаках и test-метриках;
+- `POST /predict` — предсказание цены квартиры по признакам объявления.
+
+Пример входа для `POST /predict`:
+
+```json
+{
+  "apartment_type": "Secondary",
+  "metro_station": "Каширская",
+  "minutes_to_metro": 7,
+  "region": "Moscow",
+  "number_of_rooms": 2,
+  "area": 50,
+  "living_area": 30,
+  "kitchen_area": 10,
+  "floor": 5,
+  "number_of_floors": 10,
+  "renovation": "cosmetic"
+}
+```
+
+Swagger UI доступен после запуска API:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Финальные CP3-артефакты:
+
+- `report/report.md`;
+- `report/report.pdf`;
+- `report/demo_cp3.mp4`;
+- `report/images/11_cp3_api_docs.png`;
+- `report/images/12_cp3_predict_request.png`;
+- `report/images/13_cp3_predict_response.png`.
+
 ## Воспроизводимость
 
 В проекте есть:
@@ -148,7 +191,7 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
-make cp2
+make cp3
 ```
 
 Если исходного CSV нет, его можно скачать через Kaggle CLI:
@@ -166,8 +209,21 @@ make eda
 make train
 make train-cp2
 make report-cp2
+make report-cp3
 make lint
 make test
+```
+
+Запуск API:
+
+```bash
+make api
+```
+
+Проверка API без браузера:
+
+```bash
+make api-smoke
 ```
 
 Запуск через Docker:
@@ -175,6 +231,8 @@ make test
 ```bash
 docker compose up --build
 ```
+
+При контейнерном запуске модель обучается перед стартом API, поэтому отдельный локальный `make train-cp2` не нужен.
 
 ## Структура проекта
 
@@ -189,18 +247,23 @@ docker compose up --build
 ├── report/
 │   ├── images/              # EDA-графики и CP2-графики
 │   ├── metrics/             # метрики и таблицы экспериментов
-│   └── report.md            # отчёт по текущему чекпоинту
+│   ├── report.md            # финальный markdown-отчёт
+│   ├── report.pdf           # финальный PDF-отчёт
+│   └── demo_cp3.mp4         # видео демонстрации API
 ├── src/moscow_housing/
+│   ├── api.py
 │   ├── config.py
 │   ├── constants.py
 │   ├── data.py
 │   ├── features.py
 │   ├── make_cp1_report.py
 │   ├── make_cp2_report.py
+│   ├── make_cp3_report.py
 │   ├── make_eda.py
 │   ├── metrics.py
 │   ├── modeling.py
 │   ├── prepare_data.py
+│   ├── smoke_api.py
 │   ├── train.py
 │   └── train_cp2.py
 ├── tests/

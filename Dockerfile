@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir
 
 COPY . .
 
-CMD ["make", "cp2"]
+CMD ["sh", "-c", "python -m moscow_housing.prepare_data && python -m moscow_housing.train_cp2 && uvicorn moscow_housing.api:app --host 0.0.0.0 --port 8000"]

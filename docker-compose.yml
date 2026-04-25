@@ -1,6 +1,11 @@
 services:
-  cp2:
+  api:
     build: .
+    ports:
+      - "8000:8000"
     volumes:
       - .:/app
-    command: make cp2
+    command: >
+      sh -c "python -m moscow_housing.prepare_data &&
+             python -m moscow_housing.train_cp2 &&
+             uvicorn moscow_housing.api:app --host 0.0.0.0 --port 8000"
