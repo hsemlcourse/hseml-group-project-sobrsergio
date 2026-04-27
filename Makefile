@@ -1,4 +1,4 @@
-.PHONY: install lint test prepare eda train report cp1 clean
+.PHONY: install lint test prepare eda train cp1 clean
 
 PYTHON ?= python
 PYTEST ?= pytest
@@ -23,11 +23,8 @@ eda:
 train:
 	PYTHONPATH=src $(PYTHON) -m moscow_housing.train
 
-report:
-	PYTHONPATH=src $(PYTHON) -m moscow_housing.make_cp1_report
-
-cp1: prepare eda train report lint test
+cp1: prepare eda train lint test
 
 clean:
-	rm -rf data/processed/* report/images/* report/metrics/* models/* report/report.md
+	rm -rf data/processed/* report/images/* report/metrics/* models/*
 	touch data/processed/.gitkeep models/.gitkeep

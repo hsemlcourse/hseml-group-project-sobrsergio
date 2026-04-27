@@ -143,7 +143,6 @@ kaggle datasets download -d egorkainov/moscow-housing-price-dataset -p data/raw 
 make prepare
 make eda
 make train
-make report
 make lint
 make test
 ```
@@ -177,8 +176,7 @@ docker compose up --build
 │   ├── metrics.py
 │   ├── modeling.py
 │   ├── prepare_data.py
-│   ├── train.py
-│   └── make_cp1_report.py
+│   └── train.py
 ├── tests/
 ├── Makefile
 ├── requirements.txt
