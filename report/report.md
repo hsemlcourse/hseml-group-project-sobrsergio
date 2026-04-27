@@ -169,7 +169,7 @@ http://127.0.0.1:8000/docs
 - [Predict request](images/12_cp3_predict_request.png)
 - [Predict response](images/13_cp3_predict_response.png)
 
-Видео демонстрации: [demo_cp3.mp4](demo_cp3.mp4)
+Видео демонстрации: [Google Drive](https://drive.google.com/file/d/1WevJNReWjvA7DrlCg0kZgCtoC6JF3y3M/view?usp=sharing)
 
 ## 8. Заключение и выводы
 

@@ -165,7 +165,7 @@ http://127.0.0.1:8000/docs
 
 - `report/report.md`;
 - `report/report.pdf`;
-- `report/demo_cp3.mp4`;
+- видео демонстрации API: <https://drive.google.com/file/d/1WevJNReWjvA7DrlCg0kZgCtoC6JF3y3M/view?usp=sharing>;
 - `report/images/11_cp3_api_docs.png`;
 - `report/images/12_cp3_predict_request.png`;
 - `report/images/13_cp3_predict_response.png`.
@@ -174,7 +174,7 @@ http://127.0.0.1:8000/docs
 
 В проекте есть:
 
-- `Makefile` для запуска CP1/CP2;
+- `Makefile` для запуска CP1/CP2/CP3;
 - `requirements.txt` с зафиксированными версиями зависимостей;
 - `pyproject.toml` с настройками `ruff` и `pytest`;
 - `Dockerfile` и `docker-compose.yml`;
@@ -208,8 +208,6 @@ make prepare
 make eda
 make train
 make train-cp2
-make report-cp2
-make report-cp3
 make lint
 make test
 ```
@@ -248,17 +246,13 @@ docker compose up --build
 │   ├── images/              # EDA-графики и CP2-графики
 │   ├── metrics/             # метрики и таблицы экспериментов
 │   ├── report.md            # финальный markdown-отчёт
-│   ├── report.pdf           # финальный PDF-отчёт
-│   └── demo_cp3.mp4         # видео демонстрации API
+│   └── report.pdf           # финальный PDF-отчёт
 ├── src/moscow_housing/
 │   ├── api.py
 │   ├── config.py
 │   ├── constants.py
 │   ├── data.py
 │   ├── features.py
-│   ├── make_cp1_report.py
-│   ├── make_cp2_report.py
-│   ├── make_cp3_report.py
 │   ├── make_eda.py
 │   ├── metrics.py
 │   ├── modeling.py
