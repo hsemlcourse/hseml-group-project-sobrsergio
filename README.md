@@ -165,7 +165,6 @@ make prepare
 make eda
 make train
 make train-cp2
-make report-cp2
 make lint
 make test
 ```
@@ -195,8 +194,6 @@ docker compose up --build
 │   ├── constants.py
 │   ├── data.py
 │   ├── features.py
-│   ├── make_cp1_report.py
-│   ├── make_cp2_report.py
 │   ├── make_eda.py
 │   ├── metrics.py
 │   ├── modeling.py
